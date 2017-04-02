@@ -1,5 +1,6 @@
 package com.example.lahacks.lahacks3;
 
+import android.app.ActionBar;
 import android.content.Context;
 import android.content.res.AssetManager;
 import android.content.res.Resources;
@@ -33,6 +34,8 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.support.v4.app.Fragment;
+import java.io.IOException;
 import java.lang.Object;
 //import com.google.android.gms.location.LocationClient;
 import com.google.android.gms.common.GooglePlayServicesUtil;
@@ -42,8 +45,29 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import java.lang.Object;
+
+import android.view.ViewGroup;
 import android.widget.Toast;
 import com.google.android.gms.maps.model.Circle;
+import android.Manifest;
+
+import java.util.List;
+import java.util.Random;
+import android.location.Geocoder;
+import com.google.android.gms.identity.intents.Address;
+import java.util.Locale;
+import android.widget.TextView;
+import android.view.ViewGroup.LayoutParams;
+import android.widget.LinearLayout;
+import android.app.Activity;
+import android.view.Menu;
+
+
+
+
+
+
+
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback,
     GoogleApiClient.ConnectionCallbacks,
@@ -56,8 +80,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private int status;
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
     private static boolean mLocationPermissionGranted = false;
-    private Location mLastLocation;
+    private Location mLastLocation = new Location("location");
     private Marker mCurrLocationMarker;
+    private TextView area;
+
+    private SupportMapFragment mMapFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,10 +94,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-        checkLocationPermission();
 
-        if (mLastLocation != null)
-            onLocationChanged(mLastLocation);
+
+        mMapFragment = (SupportMapFragment) (getSupportFragmentManager().findFragmentById(R.id.map));
+        ViewGroup.LayoutParams params = mMapFragment.getView().getLayoutParams();
+        params.height = 1200;
+        mMapFragment.getView().setLayoutParams(params);
+
+        LinearLayout layout = (LinearLayout)findViewById(R.id.map);
+        LinearLayout.LayoutParams p =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT, 0.0F
+                );
+
+        area = new TextView(this);
+        //area.setLayoutParams(new ViewGroup.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+
+        mLastLocation.setLatitude(34.0050);
+        mLastLocation.setLongitude(-118.3139);
+        checkLocationPermission();
+        layout.addView(area);
+
 
         //  status = GoogleApiAvailability.isGooglePlayServicesAvailable(Context context);
       //  if (status != ConnectionResult.SUCCESS) {
@@ -208,16 +253,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     //public static final int MY_PERMISSIONS_REQUEST_LOCATION = 1;
-    public boolean checkLocationPermission(){
+    public void checkLocationPermission(){
         Log.d("MapActivity", "checkLocationPermission");
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
-
+            Log.d("MapActivity", "checkLocationPermission-permission not granted yet");
             // Asking user if explanation is needed
             if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                     Manifest.permission.ACCESS_FINE_LOCATION)) {
-
+                Log.d("MapActivity", "checkLocationPermission-show explanation");
                 // Show an expanation to the user *asynchronously* -- don't block
                 // this thread waiting for the user's response! After the user
                 // sees the explanation, try again to request the permission.
@@ -230,13 +275,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             } else {
                 // No explanation needed, we can request the permission.
+                Log.d("MapActivity", "checkLocationPermission-no explanation");
                 ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                         PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
             }
-            return false;
         } else {
-            return true;
+            Log.d("MapActivity", "checkLocationPermission-approved permission");
         }
     }
 
@@ -292,21 +337,49 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         String line = "";
         String csvSplitBy = ",";
         mMap = googleMap;
-        float latitude = Float.valueOf("34.0055");
-        float longitude = Float.valueOf("-118.3138");
-        LatLng locate = new LatLng(latitude, longitude);
-        mMap.addMarker(new MarkerOptions().position(locate).title("Marker in LA"));
-        mMap.addMarker(new MarkerOptions().position(locate));
+
+        float default_lat = (float)34.0055;
+        float default_long = (float)-118.3138;
+
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        List<android.location.Address> addresses = null;
+        try {
+            addresses = geocoder.getFromLocation(default_lat, default_long, 1);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String cityName = addresses.get(0).getAddressLine(0);
+        String stateName = addresses.get(0).getAddressLine(1);
+        String countryName = addresses.get(0).getAddressLine(2);
+
+        Log.d("MapActivity", "city is" + cityName + " " + stateName + " " + countryName);
+
+        area.setText(cityName);
+
+        LatLng locate = new LatLng(default_lat, default_long);
+        Random rand = new Random();
+        for (int i = 0; i < 15; i++) {
+
+            int value1 = rand.nextInt(50);
+            int value2 = rand.nextInt(50);
+            float latitude = Float.valueOf(default_lat+(float)(value1*0.001));
+            float longitude = Float.valueOf(default_long+(float)(value2*0.001));
+            locate = new LatLng(latitude, longitude);
+            mMap.addMarker(new MarkerOptions().position(locate).title("Sexual Assault Incident"));
+            mMap.addMarker(new MarkerOptions().position(locate));
+        }
+
+
         //mMap.moveCamera(CameraUpdateFactory.newLatLng(locate));
 
         // ... get a map.
         // Add a circle in Sydney
         Circle circle = mMap.addCircle(new CircleOptions()
-                .center(new LatLng(34.0055, -118.31389))
-                .radius(100)
+                .center(new LatLng(default_lat, default_long))
+                .radius(2000)
                 .strokeColor(Color.RED));
 
-        float zoomLevel = (float)16.0;
+        float zoomLevel = (float)21.0;
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(locate, zoomLevel));
 
         mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
@@ -351,6 +424,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 == PackageManager.PERMISSION_GRANTED) {
             LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
         }
+        if (mLastLocation != null)
+            onLocationChanged(mLastLocation);
     }
 
     @Override
@@ -368,6 +443,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onLocationChanged(Location location) {
         Log.d("MapActivity", "onLocationChanged");
         mLastLocation = location;
+        Log.d("Latitude is", String.valueOf(mLastLocation.getLatitude()));
+        Log.d("Longitude is" +
+                "", String.valueOf(mLastLocation.getLongitude()));
+        Log.d("MapActivity", "location is" + mLastLocation.getProvider());
         if (mCurrLocationMarker != null) {
             mCurrLocationMarker.remove();
         }
