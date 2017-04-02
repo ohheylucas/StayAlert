@@ -61,13 +61,13 @@ import android.view.ViewGroup.LayoutParams;
 import android.widget.LinearLayout;
 import android.app.Activity;
 import android.view.Menu;
-
-
-
-
-
-
-
+import android.app.NotificationManager;
+import android.app.Notification;
+import android.app.Service;
+import android.app.PendingIntent;
+import android.support.v4.app.NotificationCompat;
+import android.content.Intent;
+import android.support.v4.app.TaskStackBuilder;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback,
     GoogleApiClient.ConnectionCallbacks,
@@ -82,7 +82,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static boolean mLocationPermissionGranted = false;
     private Location mLastLocation = new Location("location");
     private Marker mCurrLocationMarker;
-    private TextView area;
+    //private TextView area = new TextView(this);
 
     private SupportMapFragment mMapFragment;
 
@@ -90,10 +90,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        Toast.makeText(this, "Area is dangerous!",
+                Toast.LENGTH_LONG).show();
+
+        LinearLayout ll = new LinearLayout(this);
+        ll.setOrientation(LinearLayout.VERTICAL);
+
+        TextView tv = new TextView(this);
+        tv.setText("Dynamic layouts ftw!");
+        ll.addView(tv);
 
 
         mMapFragment = (SupportMapFragment) (getSupportFragmentManager().findFragmentById(R.id.map));
@@ -101,20 +112,53 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         params.height = 1200;
         mMapFragment.getView().setLayoutParams(params);
 
-        LinearLayout layout = (LinearLayout)findViewById(R.id.map);
-        LinearLayout.LayoutParams p =
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT, 0.0F
+
+
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(this)
+                        .setSmallIcon(R.drawable.cast_ic_notification_small_icon)
+                        .setContentTitle("My notification")
+                        .setContentText("Area of current location is dangerous!")
+                        .setPriority(Notification.PRIORITY_HIGH);;
+
+        Intent resultIntent = new Intent(this, MapsActivity.class);
+// Because clicking the notification opens a new ("special") activity, there's
+// no need to create an artificial back stack.
+        PendingIntent resultPendingIntent =
+                PendingIntent.getActivity(
+                        this,
+                        0,
+                        resultIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT
                 );
 
-        area = new TextView(this);
+        mBuilder.setContentIntent(resultPendingIntent);
+
+
+// Sets an ID for the notification
+        int mNotificationId = 001;
+// Gets an instance of the NotificationManager service
+        NotificationManager mNotifyMgr =
+                (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+// Builds the notification and issues it.
+        mNotifyMgr.notify(mNotificationId, mBuilder.build());
+
+
+
+        //TextView tv = new TextView(getApplicationContext());
+        //parentView.addView(tv);
+
+        //LinearLayout layout = new LinearLayout(this);
+        //layout.setOrientation(LinearLayout.VERTICAL);
+
+        //area = new TextView(this);
         //area.setLayoutParams(new ViewGroup.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
 
         mLastLocation.setLatitude(34.0050);
         mLastLocation.setLongitude(-118.3139);
         checkLocationPermission();
-        layout.addView(area);
+        //layout.addView(area);
+        //root.addView(area);
 
 
         //  status = GoogleApiAvailability.isGooglePlayServicesAvailable(Context context);
@@ -338,8 +382,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         String csvSplitBy = ",";
         mMap = googleMap;
 
-        float default_lat = (float)34.0055;
-        float default_long = (float)-118.3138;
+        float default_lat = (float)34.0065;
+        float default_long = (float)-118.3148;
 
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
         List<android.location.Address> addresses = null;
@@ -354,14 +398,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         Log.d("MapActivity", "city is" + cityName + " " + stateName + " " + countryName);
 
-        area.setText(cityName);
+        //area.setText(cityName);
 
         LatLng locate = new LatLng(default_lat, default_long);
         Random rand = new Random();
-        for (int i = 0; i < 15; i++) {
+        for (int i = 0; i < 5; i++) {
 
-            int value1 = rand.nextInt(50);
-            int value2 = rand.nextInt(50);
+            int value1 = rand.nextInt(30);
+            int value2 = rand.nextInt(30);
             float latitude = Float.valueOf(default_lat+(float)(value1*0.001));
             float longitude = Float.valueOf(default_long+(float)(value2*0.001));
             locate = new LatLng(latitude, longitude);
